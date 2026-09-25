@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ganesh Darshan Portal - Location Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for free interactive map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg-dark: #0f0c1b;
+      --surface-dark: #18142a;
+      --surface-card: #221c38;
+      --orange-glow: #ff6b00;
+      --amber-warm: #ffb703;
+      --purple-accent: #9d4edd;
+      --text-light: #f1f1f5;
+      --text-muted: #a09cb0;
+      --border-color: #322a50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--surface-dark);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.2rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(157, 78, 221, 0.15);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--orange-glow), var(--amber-warm));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav { display: flex; gap: 1rem; }
+    nav button {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    nav button:hover, nav button.active {
+      background: var(--orange-glow);
+      border-color: var(--orange-glow);
+      color: #fff;
+    }
+
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; width: 100%; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .form-card {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 { margin-bottom: 1.5rem; color: var(--amber-warm); text-align: center; }
+
+    .form-group { margin-bottom: 1.5rem; }
+    label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-light); }
+
+    input[type="text"], input[type="date"], textarea {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: var(--surface-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus { border-color: var(--orange-glow); }
+
+    /* Map Box */
+    #map {
+      width: 100%;
+      height: 280px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-top: 0.8rem;
+      z-index: 1;
+    }
+
+    .btn-location {
+      background: linear-gradient(135deg, var(--orange-glow), var(--purple-accent));
+      color: #fff;
+      border: none;
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+      transition: all 0.3s;
+    }
+    .btn-location:hover { opacity: 0.9; }
+
+    .loc-display-box {
+      margin-top: 0.8rem;
+      background: var(--surface-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font-size: 0.9rem;
+      color: var(--amber-warm);
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .file-dropzone {
+      border: 2px dashed var(--purple-accent);
+      background: var(--surface-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+    .file-dropzone input[type="file"] {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .preview-img {
+      max-width: 100%;
+      max-height: 250px;
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: none;
+      object-fit: cover;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--orange-glow), var(--purple-accent));
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 107, 0, 0.6); }
+
+    /* Directory Card Layout */
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+      border-left: 4px solid var(--orange-glow);
+    }
+
+    .card-img-container {
+      width: 100%;
+      height: 200px;
+      background: var(--surface-card);
+      position: relative;
+    }
+
+    .card-img { width: 100%; height: 100%; object-fit: cover; }
+    .placeholder-img { display: flex; justify-content: center; align-items: center; height: 100%; font-size: 3rem; background: #1d1833; }
+
+    .id-badge {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(15, 12, 27, 0.85);
+      color: var(--amber-warm);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--amber-warm);
+    }
+
+    .card-body { padding: 1.2rem; display: flex; flex-direction: column; flex-grow: 1; }
+    .group-title { font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+    .address-text { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4; }
+
+    .dates-container {
+      background: var(--surface-card);
+      border-radius: 8px;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+    }
+    .date-row { display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
+
+    .bhajana-text { font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; line-height: 1.4; flex-grow: 1; }
+
+    .map-btn {
+      display: block;
+      text-align: center;
+      padding: 0.7rem;
+      background: linear-gradient(135deg, var(--orange-glow), var(--purple-accent));
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    .btn-clear {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🕉️ Ganesh Darshan Portal</div>
+    <nav>
+      <button id="navPage1" class="active" onclick="switchPage('page1')">Register Pandal</button>
+      <button id="navPage2" onclick="switchPage('page2')">View Directory</button>
+    </nav>
+  </header>
+
+  <div class="container">
+
+    <!-- PAGE 1: REGISTRATION FORM -->
+    <div id="page1" class="page active">
+      <div class="form-card">
+        <h2>Register Mandapam / Pandal</h2>
+        <form id="pandalForm">
+
+          <!-- 1. Youth / Group Name -->
+          <div class="form-group">
+            <label for="group_name">Youth / Group Name *</label>
+            <input type="text" id="group_name" required placeholder="e.g. Jai Ho Youth Association">
+          </div>
+
+          <!-- 2. Pin Current Location Address on Map -->
+          <div class="form-group">
+            <label>Pin Current Location Address on Map *</label>
+            <button type="button" class="btn-location" onclick="getCurrentLocation()">📍 Pin My Current Location</button>
+            
+            <div class="loc-display-box">
+              <strong>Pinned Address:</strong> <span id="loc_address_text">Tap button above or click on map to set address</span>
+            </div>
+
+            <div id="map"></div>
+          </div>
+
+          <!-- 3. Image Upload -->
+          <div class="form-group">
+            <label>Upload Idol Image (Native Gallery/Camera)</label>
+            <div class="file-dropzone">
+              <p>📷 Tap to Select Image from Device</p>
+              <input type="file" id="idol_image_file" accept="image/*">
+            </div>
+            <img id="image_preview" class="preview-img" alt="Selected Idol Preview">
+          </div>
+
+          <!-- 4. Event Dates -->
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="annadhanam_date">Annadhanam Date</label>
+              <input type="date" id="annadhanam_date">
+            </div>
+            <div class="form-group">
+              <label for="nimarjanam_date">Nimarjanam Date</label>
+              <input type="date" id="nimarjanam_date">
+            </div>
+          </div>
+
+          <!-- 5. Story / Bhajana -->
+          <div class="form-group">
+            <label for="bhajana_story">Ganesh Story / Bhajana Details</label>
+            <textarea id="bhajana_story" rows="3" placeholder="Describe cultural events, bhajana timings, special attractions..."></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit">Save & View Directory</button>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- PAGE 2: DIRECTORY / DISPLAY -->
+    <div id="page2" class="page">
+      <div style="overflow: hidden; margin-bottom: 1rem;">
+        <h2 style="float: left; margin: 0;">Registered Ganesh Pandals</h2>
+        <button class="btn-clear" onclick="clearAllData()">Clear All Data</button>
+      </div>
+      <div id="grid_container" class="grid-cards"></div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet JS for Map rendering -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    let map, marker;
+    let selectedLat = 17.3850;
+    let selectedLng = 78.4867;
+    let resolvedAddress = "Location not selected";
+    let base64ImageString = "";
+
+    // Initialize Map
+    function initMap() {
+      if (map) return;
+
+      map = L.map('map').setView([selectedLat, selectedLng], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      marker = L.marker([selectedLat, selectedLng], { draggable: true }).addTo(map);
+
+      // Click to pin on map
+      map.on('click', function(e) {
+        updateMarkerAndFetchAddress(e.latlng.lat, e.latlng.lng);
+      });
+
+      // Drag marker on map
+      marker.on('dragend', function(e) {
+        const position = marker.getLatLng();
+        updateMarkerAndFetchAddress(position.lat, position.lng);
+      });
+    }
+
+    // Update marker position and reverse geocode location address
+    function updateMarkerAndFetchAddress(lat, lng) {
+      selectedLat = lat;
+      selectedLng = lng;
+      marker.setLatLng([lat, lng]);
+
+      const addressTextElem = document.getElementById('loc_address_text');
+      addressTextElem.innerText = "Fetching address...";
+
+      // Reverse Geocoding API
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            resolvedAddress = data.display_name;
+            addressTextElem.innerText = resolvedAddress;
+          } else {
+            resolvedAddress = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            addressTextElem.innerText = resolvedAddress;
+          }
+        })
+        .catch(() => {
+          resolvedAddress = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          addressTextElem.innerText = resolvedAddress;
+        });
+    }
+
+    // IP-based Fallback Locator when GPS/Browser blocks Geolocation
+    function fetchLocationByIP() {
+      const addressTextElem = document.getElementById('loc_address_text');
+      addressTextElem.innerText = "Attempting IP location fallback...";
+      
+      fetch('https://ipapi.co/json/')
+        .then(res => res.json())
+        .then(data => {
+          if (data.latitude && data.longitude) {
+            map.setView([data.latitude, data.longitude], 13);
+            updateMarkerAndFetchAddress(data.latitude, data.longitude);
+          } else {
+            addressTextElem.innerText = "Could not fetch GPS/IP. Please tap anywhere on the map below to pin manually.";
+          }
+        })
+        .catch(() => {
+          addressTextElem.innerText = "GPS blocked by browser/file mode. Please tap directly on the map to pin.";
+        });
+    }
+
+    // Location Locator with Diagnostic Handling
+    function getCurrentLocation() {
+      const addressTextElem = document.getElementById('loc_address_text');
+
+      if (!window.isSecureContext && window.location.protocol !== 'http:' && window.location.hostname !== 'localhost') {
+        addressTextElem.innerText = "⚠️ Secure HTTPS connection required for GPS. Trying IP location fallback...";
+        fetchLocationByIP();
+        return;
+      }
+
+      if (navigator.geolocation) {
+        addressTextElem.innerText = "Acquiring accurate GPS location...";
+        
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            map.setView([lat, lng], 16);
+            updateMarkerAndFetchAddress(lat, lng);
+          },
+          (error) => {
+            console.warn("GPS Error Code:", error.code);
+            if (error.code === error.PERMISSION_DENIED) {
+              addressTextElem.innerText = "⚠️ Location permission denied in browser settings. Falling back to approximate location...";
+            } else {
+              addressTextElem.innerText = "⚠️ GPS Signal timeout. Trying IP approximate location...";
+            }
+            fetchLocationByIP();
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      } else {
+        fetchLocationByIP();
+      }
+    }
+
+    // Switch Page Navigation
+    function switchPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+      document.getElementById(pageId).classList.add('active');
+      if(pageId === 'page1') {
+        document.getElementById('navPage1').classList.add('active');
+        setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+      }
+      if(pageId === 'page2') {
+        document.getElementById('navPage2').classList.add('active');
+        renderDirectory();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
+
+    // Image Upload Converter
+    document.getElementById('idol_image_file').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          base64ImageString = event.target.result;
+          const preview = document.getElementById('image_preview');
+          preview.src = base64ImageString;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Form Submission Handler
+    document.getElementById('pandalForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const newEntry = {
+        id: Date.now(),
+        group_name: document.getElementById('group_name').value,
+        address: resolvedAddress,
+        latitude: selectedLat,
+        longitude: selectedLng,
+        idol_image: base64ImageString,
+        annadhanam_date: document.getElementById('annadhanam_date').value,
+        nimarjanam_date: document.getElementById('nimarjanam_date').value,
+        bhajana_story: document.getElementById('bhajana_story').value
+      };
+
+      const existingData = JSON.parse(localStorage.getItem('pandalData') || '[]');
+      existingData.unshift(newEntry);
+      localStorage.setItem('pandalData', JSON.stringify(existingData));
+
+      this.reset();
+      base64ImageString = "";
+      document.getElementById('image_preview').style.display = 'none';
+      document.getElementById('loc_address_text').innerText = "Tap button above or click on map to set address";
+
+      switchPage('page2');
+    });
+
+    // Render Cards on Page 2
+    function renderDirectory() {
+      const container = document.getElementById('grid_container');
+      const data = JSON.parse(localStorage.getItem('pandalData') || '[]');
+
+      if (data.length === 0) {
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">No pandals registered yet.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(pandal => {
+        const imgHTML = pandal.idol_image 
+          ? `<img src="${pandal.idol_image}" class="card-img" alt="${pandal.group_name}">`
+          : `<div class="placeholder-img">🕉️</div>`;
+
+        const mapLink = `https://www.google.com/maps?q=${pandal.latitude},${pandal.longitude}`;
+
+        return `
+          <div class="card">
+            <div class="card-img-container">
+              ${imgHTML}
+              <span class="id-badge">ID: #${pandal.id.toString().slice(-4)}</span>
+            </div>
+            <div class="card-body">
+              <div class="group-title">Youth Name: ${pandal.group_name}</div>
+              <div class="address-text">📍 ${pandal.address}</div>
+              
+              <div class="dates-container">
+                <div class="date-row"><span>🍲 Annadhanam:</span><strong>${pandal.annadhanam_date || 'N/A'}</strong></div>
+                <div class="date-row"><span>🌊 Nimarjanam:</span><strong>${pandal.nimarjanam_date || 'N/A'}</strong></div>
+              </div>
+
+              <div class="bhajana-text">
+                ${pandal.bhajana_story ? pandal.bhajana_story : '<em>No additional details provided.</em>'}
+              </div>
+
+              <a href="${mapLink}" target="_blank" class="map-btn">🗺️ Navigate on Google Maps</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function clearAllData() {
+      if(confirm('Are you sure you want to clear all test entries?')) {
+        localStorage.removeItem('pandalData');
+        renderDirectory();
+      }
+    }
+  </script>
+</body>
+</html>
